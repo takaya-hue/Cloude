@@ -56,12 +56,25 @@ var SHEET_DEFINITIONS = [
 ];
 
 /**
+ * スクリプトプロパティからスプレッドシートIDを取得して開く。
+ * IDが未設定の場合はエラーを投げる。
+ * @return {GoogleAppsScript.Spreadsheet.Spreadsheet}
+ */
+function getSpreadsheet_() {
+  var ssId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  if (!ssId) {
+    throw new Error('スクリプトプロパティに SPREADSHEET_ID が設定されていません。');
+  }
+  return SpreadsheetApp.openById(ssId);
+}
+
+/**
  * データベース用スプレッドシートを初期化する。
  * 定義された各シートが存在しない場合のみ作成し、ヘッダー行を設定する。
  * すでに同名のシートが存在する場合はスキップする。
  */
 function setupDatabase() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet_();
 
   SHEET_DEFINITIONS.forEach(function(def) {
     var sheet = ss.getSheetByName(def.name);
