@@ -2,6 +2,54 @@
  * ChatApp - Google Chat ボットのUI・イベント処理モジュール
  */
 
+/** プロジェクト立ち上げを開始するトリガーワード */
+var TRIGGER_KEYWORDS = ['登録', '立ち上げ', '新規', 'プロジェクト'];
+
+/**
+ * Google Chat Botがメッセージを受信した際のエントリポイント。
+ * トリガーワードに一致した場合、プロジェクト種別選択カードを返す。
+ *
+ * @param {Object} event - Google Chatからのメッセージイベント
+ * @return {Object} Chat応答（カードまたはテキストメッセージ）
+ */
+function onMessage(event) {
+  var userMessage = (event.message && event.message.text) ? event.message.text.trim() : '';
+
+  var isTriggered = TRIGGER_KEYWORDS.some(function(keyword) {
+    return userMessage.indexOf(keyword) !== -1;
+  });
+
+  if (isTriggered) {
+    return getProjectTypeSelectionCard();
+  }
+
+  return {
+    text: 'プロジェクトを立ち上げるには「登録」または「立ち上げ」と入力してください。'
+  };
+}
+
+/**
+ * Google Chat Botでカードのボタンが押された際のエントリポイント。
+ * actionMethodName に基づいて適切なコールバック関数にルーティングする。
+ *
+ * @param {Object} event - Google Chatからのカードクリックイベント
+ * @return {Object} Chat応答（カードまたはテキストメッセージ）
+ */
+function onCardClick(event) {
+  var actionName = event.common && event.common.invokedFunction
+    ? event.common.invokedFunction
+    : '';
+
+  switch (actionName) {
+    case 'onProjectTypeSelected':
+      return onProjectTypeSelected(event);
+    default:
+      return {
+        text: '不明なアクションです: ' + actionName
+      };
+  }
+}
+
 /**
  * プロジェクト種別選択カード（Card V2形式）を返す。
  * ユーザーに「新商品」「リニューアル・軽微な変更」「PB」の3種別から選択させる。
