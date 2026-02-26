@@ -1,0 +1,9 @@
+{
+  "name": "cloude-gas",
+  "version": "1.0.0",
+  "description": "Google Apps Script project for SpreadsheetDB",
+  "private": true,
+  "devDependencies": {
+    "@types/google-apps-script": "^1.0.83"
+  }
+}
