@@ -6,7 +6,10 @@
  */
 
 /** プロジェクト立ち上げを開始するトリガーワード */
-var TRIGGER_KEYWORDS = ['登録', '立ち上げ', '新規', 'プロジェクト'];
+var TRIGGER_KEYWORDS = ['立ち上げ', '新規', 'プロジェクト'];
+
+/** 担当者登録を開始するトリガーワード */
+var MEMBER_TRIGGER_KEYWORDS = ['担当者登録', 'メンバー登録'];
 
 // ==================================================
 // Workspace Add-on レスポンスヘルパー
@@ -117,18 +120,31 @@ function getMessageText_(event) {
 function onMessage(event) {
   var userMessage = getMessageText_(event);
 
+  // 担当者登録キーワードを先にチェック（「登録」より優先）
+  var isMemberTriggered = MEMBER_TRIGGER_KEYWORDS.some(function(keyword) {
+    return userMessage.indexOf(keyword) !== -1;
+  });
+
+  if (isMemberTriggered) {
+    return createChatCreateMessageResponse_(
+      buildCardMessage_(getMemberRegistrationFormCardsV2_())
+    );
+  }
+
+  // プロジェクト立ち上げキーワード
   var isTriggered = TRIGGER_KEYWORDS.some(function(keyword) {
     return userMessage.indexOf(keyword) !== -1;
   });
 
-  if (isTriggered) {
+  // 「登録」単体もプロジェクト立ち上げとして扱う
+  if (isTriggered || userMessage.indexOf('登録') !== -1) {
     return createChatCreateMessageResponse_(
       buildCardMessage_(getProjectTypeSelectionCardsV2_())
     );
   }
 
   return createChatCreateMessageResponse_(
-    buildTextMessage_('プロジェクトを立ち上げるには「登録」または「立ち上げ」と入力してください。')
+    buildTextMessage_('利用可能なコマンド:\n・「登録」「立ち上げ」→ プロジェクト立ち上げ\n・「担当者登録」「メンバー登録」→ 担当者の登録')
   );
 }
 
@@ -148,6 +164,8 @@ function onCardClick(event) {
       return onProjectTypeSelected(event);
     case 'onProjectInfoSubmitted':
       return onProjectInfoSubmitted(event);
+    case 'onMemberRegistrationSubmitted':
+      return onMemberRegistrationSubmitted(event);
     default:
       return createChatCreateMessageResponse_(
         buildTextMessage_('不明なアクションです: ' + actionName)
