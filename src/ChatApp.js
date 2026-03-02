@@ -140,9 +140,8 @@ function onMessage(event) {
  * @return {Object} Workspace Add-on 形式のレスポンス
  */
 function onCardClick(event) {
-  var actionName = event.common && event.common.invokedFunction
-    ? event.common.invokedFunction
-    : '';
+  var ceo = event.commonEventObject || event.common || {};
+  var actionName = ceo.invokedFunction || '';
 
   switch (actionName) {
     case 'onProjectTypeSelected':
@@ -245,7 +244,9 @@ function createProjectTypeButton_(label, typeValue) {
  * @return {Object} Workspace Add-on 形式のレスポンス
  */
 function onProjectTypeSelected(event) {
-  var projectType = event.common.parameters.projectType;
+  var ceo = event.commonEventObject || event.common || {};
+  var params = ceo.parameters || {};
+  var projectType = params.projectType;
 
   if (projectType === 'PB') {
     return createChatUpdateMessageResponse_(
