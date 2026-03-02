@@ -108,11 +108,10 @@ function createProjectSheet(projectData) {
   sheet.setColumnWidth(2, 350);
   sheet.setFrozenRows(1);
 
-  // 指定フォルダに移動
+  // 指定フォルダに移動（moveTo は addFile/removeFile の代替）
   var file = DriveApp.getFileById(ss.getId());
   var folder = DriveApp.getFolderById(PROJECT_FOLDER_ID);
-  folder.addFile(file);
-  DriveApp.getRootFolder().removeFile(file);
+  file.moveTo(folder);
 
   Logger.log('プロジェクトシートを作成しました: ' + fileName);
 
