@@ -55,6 +55,74 @@ var SHEET_DEFINITIONS = [
   }
 ];
 
+/** プロジェクトシートの保存先 Drive フォルダ ID */
+var PROJECT_FOLDER_ID = '1YarMPRjmOgKw65UAa0HbTwd-9fyjv8Xc';
+
+/**
+ * プロジェクト用のスプレッドシートを作成し、指定フォルダに配置する。
+ * ファイル名は「種別_商品名_YYMMDD」形式。
+ *
+ * @param {Object} projectData - プロジェクト情報
+ * @param {string} projectData.projectType - 種別コード
+ * @param {string} projectData.projectTypeLabel - 種別表示名
+ * @param {string} projectData.productName - 商品名
+ * @param {string} projectData.specification - 規格
+ * @param {string} projectData.releaseDate - 発売予定日 (YYYY/MM/DD)
+ * @return {Object} 作成結果 { spreadsheetId, spreadsheetUrl, fileName }
+ */
+function createProjectSheet(projectData) {
+  var now = new Date();
+  var yy = String(now.getFullYear()).slice(-2);
+  var mm = ('0' + (now.getMonth() + 1)).slice(-2);
+  var dd = ('0' + now.getDate()).slice(-2);
+  var dateSuffix = yy + mm + dd;
+
+  var fileName = projectData.projectTypeLabel + '_' + projectData.productName + '_' + dateSuffix;
+
+  // スプレッドシートを新規作成
+  var ss = SpreadsheetApp.create(fileName);
+
+  // 概要シートにプロジェクト情報を書き込む
+  var sheet = ss.getSheets()[0];
+  sheet.setName('プロジェクト概要');
+
+  var infoData = [
+    ['項目', '内容'],
+    ['種別', projectData.projectTypeLabel],
+    ['商品名', projectData.productName],
+    ['規格', projectData.specification],
+    ['発売予定日', projectData.releaseDate],
+    ['登録日', Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm')],
+    ['ステータス', '立ち上げ']
+  ];
+  sheet.getRange(1, 1, infoData.length, 2).setValues(infoData);
+
+  // ヘッダー行を装飾
+  var headerRange = sheet.getRange(1, 1, 1, 2);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#4a86e8');
+  headerRange.setFontColor('#ffffff');
+
+  // 列幅を調整
+  sheet.setColumnWidth(1, 150);
+  sheet.setColumnWidth(2, 350);
+  sheet.setFrozenRows(1);
+
+  // 指定フォルダに移動
+  var file = DriveApp.getFileById(ss.getId());
+  var folder = DriveApp.getFolderById(PROJECT_FOLDER_ID);
+  folder.addFile(file);
+  DriveApp.getRootFolder().removeFile(file);
+
+  Logger.log('プロジェクトシートを作成しました: ' + fileName);
+
+  return {
+    spreadsheetId: ss.getId(),
+    spreadsheetUrl: ss.getUrl(),
+    fileName: fileName
+  };
+}
+
 /**
  * スクリプトプロパティからスプレッドシートIDを取得して開く。
  * IDが未設定の場合はエラーを投げる。

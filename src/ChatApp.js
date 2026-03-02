@@ -342,7 +342,7 @@ function getProjectInfoFormCardsV2_(projectType) {
                   label: '商品名',
                   type: 'SINGLE_LINE',
                   name: 'productName',
-                  hintText: '例: ○○化粧水 しっとりタイプ'
+                  hintText: '例: ウルトラ花ちゃん培養土 / 月下美人の肥料'
                 }
               },
               {
@@ -350,7 +350,7 @@ function getProjectInfoFormCardsV2_(projectType) {
                   label: '規格',
                   type: 'SINGLE_LINE',
                   name: 'specification',
-                  hintText: '例: 200mL / 30g'
+                  hintText: '例: 30L / 500g'
                 }
               },
               {
@@ -397,7 +397,7 @@ function getProjectInfoFormCardsV2_(projectType) {
 
 /**
  * プロジェクト情報入力フォーム送信時のコールバック。
- * フォームの入力値を取得し、確認メッセージを表示する。
+ * フォームの入力値を取得し、スプレッドシートを作成して確認メッセージを表示する。
  *
  * @param {Object} event - Google Chatからのイベントオブジェクト
  * @return {Object} Workspace Add-on 形式のレスポンス
@@ -408,15 +408,32 @@ function onProjectInfoSubmitted(event) {
   var formInputs = ceo.formInputs || {};
 
   var projectType = params.projectType || '不明';
+  var projectTypeLabel = getProjectTypeLabel_(projectType);
   var productName = getFormValue_(formInputs, 'productName');
   var specification = getFormValue_(formInputs, 'specification');
   var releaseDate = getFormDateValue_(formInputs, 'releaseDate');
 
+  if (!productName) {
+    return createChatCreateMessageResponse_(
+      buildTextMessage_('⚠️ 商品名は必須です。入力してから再度「登録する」を押してください。')
+    );
+  }
+
+  // スプレッドシートを作成
+  var result = createProjectSheet({
+    projectType: projectType,
+    projectTypeLabel: projectTypeLabel,
+    productName: productName,
+    specification: specification || '',
+    releaseDate: releaseDate || ''
+  });
+
   var summary = '✅ プロジェクトを登録しました\n\n'
-    + '📋 種別: ' + getProjectTypeLabel_(projectType) + '\n'
-    + '📦 商品名: ' + (productName || '未入力') + '\n'
+    + '📋 種別: ' + projectTypeLabel + '\n'
+    + '📦 商品名: ' + productName + '\n'
     + '📐 規格: ' + (specification || '未入力') + '\n'
-    + '📅 発売予定日: ' + (releaseDate || '未入力');
+    + '📅 発売予定日: ' + (releaseDate || '未入力') + '\n\n'
+    + '📊 管理シート: ' + result.spreadsheetUrl;
 
   return createChatCreateMessageResponse_(
     buildTextMessage_(summary)
