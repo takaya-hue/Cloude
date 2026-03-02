@@ -1,63 +1,77 @@
 /**
  * ChatApp - Google Chat ボットのUI・イベント処理モジュール
+ *
+ * このプロジェクトは Google Workspace Add-on としてデプロイされるため、
+ * すべてのレスポンスは hostAppDataAction.chatDataAction でラップする必要がある。
  */
 
 /** プロジェクト立ち上げを開始するトリガーワード */
 var TRIGGER_KEYWORDS = ['登録', '立ち上げ', '新規', 'プロジェクト'];
 
 // ==================================================
-// レスポンスヘルパー
+// Workspace Add-on レスポンスヘルパー
 // ==================================================
 
 /**
- * テキストをカード形式で返すヘルパー。
- * Google Chat API はテキストのみの応答を拒否する場合があるため、
- * すべての応答をカード形式（cardsV2）に統一する。
+ * Workspace Add-on 用: 新規メッセージ作成レスポンスを返す。
+ * onMessage / onCardClick の両方で使用可能。
  *
- * @param {string} message - 表示するテキスト
- * @return {Object} Card V2 形式のレスポンス
+ * @param {Object} message - text や cardsV2 を含む Message オブジェクト
+ * @return {Object} hostAppDataAction でラップされたレスポンス
  * @private
  */
-function createTextCardResponse_(message) {
+function createChatCreateMessageResponse_(message) {
   return {
-    cardsV2: [
-      {
-        cardId: 'textResponse',
-        card: {
-          sections: [
-            {
-              widgets: [
-                {
-                  textParagraph: {
-                    text: message
-                  }
-                }
-              ]
-            }
-          ]
+    hostAppDataAction: {
+      chatDataAction: {
+        createMessageAction: {
+          message: message
         }
       }
-    ]
+    }
   };
 }
 
 /**
- * onCardClick 用のレスポンスを生成するヘルパー。
- * カードクリック応答には actionResponse が必須。
+ * Workspace Add-on 用: 既存メッセージ更新レスポンスを返す。
+ * onCardClick で既存カードを差し替える際に使用。
  *
- * @param {string} type - 'NEW_MESSAGE' または 'UPDATE_MESSAGE'
- * @param {Object} message - cardsV2 を含むメッセージオブジェクト
- * @return {Object} actionResponse 付きのレスポンス
+ * @param {Object} message - cardsV2 を含む Message オブジェクト
+ * @return {Object} hostAppDataAction でラップされたレスポンス
  * @private
  */
-function createActionResponse_(type, message) {
-  var response = {
-    actionResponse: { type: type }
+function createChatUpdateMessageResponse_(message) {
+  return {
+    hostAppDataAction: {
+      chatDataAction: {
+        updateMessageAction: {
+          message: message
+        }
+      }
+    }
   };
-  if (message.cardsV2) {
-    response.cardsV2 = message.cardsV2;
-  }
-  return response;
+}
+
+/**
+ * テキストメッセージ用の Message オブジェクトを生成する。
+ *
+ * @param {string} text - 表示するテキスト
+ * @return {Object} Message オブジェクト
+ * @private
+ */
+function buildTextMessage_(text) {
+  return { text: text };
+}
+
+/**
+ * Card V2 メッセージ用の Message オブジェクトを生成する。
+ *
+ * @param {Array} cardsV2 - CardWithId の配列
+ * @return {Object} Message オブジェクト
+ * @private
+ */
+function buildCardMessage_(cardsV2) {
+  return { cardsV2: cardsV2 };
 }
 
 // ==================================================
@@ -69,7 +83,7 @@ function createActionResponse_(type, message) {
  * トリガーワードに一致した場合、プロジェクト種別選択カードを返す。
  *
  * @param {Object} event - Google Chatからのメッセージイベント
- * @return {Object} Chat応答（Card V2形式）
+ * @return {Object} Workspace Add-on 形式のレスポンス
  */
 function onMessage(event) {
   var userMessage = (event.message && event.message.text)
@@ -81,11 +95,13 @@ function onMessage(event) {
   });
 
   if (isTriggered) {
-    return getProjectTypeSelectionCard();
+    return createChatCreateMessageResponse_(
+      buildCardMessage_(getProjectTypeSelectionCardsV2_())
+    );
   }
 
-  return createTextCardResponse_(
-    'プロジェクトを立ち上げるには「登録」または「立ち上げ」と入力してください。'
+  return createChatCreateMessageResponse_(
+    buildTextMessage_('プロジェクトを立ち上げるには「登録」または「立ち上げ」と入力してください。')
   );
 }
 
@@ -94,7 +110,7 @@ function onMessage(event) {
  * invokedFunction に基づいて適切なコールバック関数にルーティングする。
  *
  * @param {Object} event - Google Chatからのカードクリックイベント
- * @return {Object} actionResponse 付きの Chat応答
+ * @return {Object} Workspace Add-on 形式のレスポンス
  */
 function onCardClick(event) {
   var actionName = event.common && event.common.invokedFunction
@@ -105,9 +121,8 @@ function onCardClick(event) {
     case 'onProjectTypeSelected':
       return onProjectTypeSelected(event);
     default:
-      return createActionResponse_(
-        'NEW_MESSAGE',
-        createTextCardResponse_('不明なアクションです: ' + actionName)
+      return createChatCreateMessageResponse_(
+        buildTextMessage_('不明なアクションです: ' + actionName)
       );
   }
 }
@@ -117,44 +132,53 @@ function onCardClick(event) {
 // ==================================================
 
 /**
- * プロジェクト種別選択カード（Card V2形式）を返す。
- * ユーザーに「新商品」「リニューアル・軽微な変更」「PB」の3種別から選択させる。
- * 各ボタンのアクションパラメータに種別を持たせ、後続の処理に繋げる。
+ * プロジェクト種別選択カードの cardsV2 配列を返す。
  *
- * @return {Object} Card V2形式のカードオブジェクト
+ * @return {Array} CardWithId の配列
+ * @private
+ */
+function getProjectTypeSelectionCardsV2_() {
+  return [
+    {
+      cardId: 'projectTypeSelection',
+      card: {
+        header: {
+          title: 'プロジェクト立ち上げ',
+          subtitle: '商品開発の種別を選択してください',
+          imageUrl: 'https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/rocket_launch/default/48px.svg',
+          imageType: 'CIRCLE'
+        },
+        sections: [
+          {
+            header: '種別選択',
+            widgets: [
+              {
+                buttonList: {
+                  buttons: [
+                    createProjectTypeButton_('新商品', 'NEW_PRODUCT'),
+                    createProjectTypeButton_('リニューアル・軽微な変更', 'RENEWAL'),
+                    createProjectTypeButton_('PB（プライベートブランド）', 'PB')
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ];
+}
+
+/**
+ * 後方互換用: getProjectTypeSelectionCard() のラッパー。
+ * 他のモジュールから呼ばれる可能性があるため残す。
+ *
+ * @return {Object} Workspace Add-on 形式のレスポンス
  */
 function getProjectTypeSelectionCard() {
-  return {
-    cardsV2: [
-      {
-        cardId: 'projectTypeSelection',
-        card: {
-          header: {
-            title: 'プロジェクト立ち上げ',
-            subtitle: '商品開発の種別を選択してください',
-            imageUrl: 'https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/rocket_launch/default/48px.svg',
-            imageType: 'CIRCLE'
-          },
-          sections: [
-            {
-              header: '種別選択',
-              widgets: [
-                {
-                  buttonList: {
-                    buttons: [
-                      createProjectTypeButton_('新商品', 'NEW_PRODUCT'),
-                      createProjectTypeButton_('リニューアル・軽微な変更', 'RENEWAL'),
-                      createProjectTypeButton_('PB（プライベートブランド）', 'PB')
-                    ]
-                  }
-                }
-              ]
-            }
-          ]
-        }
-      }
-    ]
-  };
+  return createChatCreateMessageResponse_(
+    buildCardMessage_(getProjectTypeSelectionCardsV2_())
+  );
 }
 
 /**
@@ -187,78 +211,79 @@ function createProjectTypeButton_(label, typeValue) {
 
 /**
  * 種別選択ボタンが押されたときのコールバック。
- * PBが選択された場合は配合種別の確認カードを返す。
+ * PBが選択された場合は配合種別の確認カードに更新する。
  * それ以外はプロジェクト情報入力へ進む。
  *
  * @param {Object} event - Google Chatからのイベントオブジェクト
- * @return {Object} actionResponse 付きの次のカードまたはメッセージ
+ * @return {Object} Workspace Add-on 形式のレスポンス
  */
 function onProjectTypeSelected(event) {
   var projectType = event.common.parameters.projectType;
 
   if (projectType === 'PB') {
-    return createActionResponse_('UPDATE_MESSAGE', getPbFormulaTypeCard_());
+    return createChatUpdateMessageResponse_(
+      buildCardMessage_(getPbFormulaTypeCardsV2_())
+    );
   }
 
   var message = '種別「' + getProjectTypeLabel_(projectType) + '」が選択されました。次のステップに進みます。';
-  return createActionResponse_('NEW_MESSAGE', createTextCardResponse_(message));
+  return createChatCreateMessageResponse_(
+    buildTextMessage_(message)
+  );
 }
 
 /**
- * PB選択時の配合種別確認カード（Card V2形式）を返す。
- * 「新規配合」「既存配合」を選択させる。
+ * PB選択時の配合種別確認カードの cardsV2 配列を返す。
  *
- * @return {Object} Card V2形式のカードオブジェクト
+ * @return {Array} CardWithId の配列
  * @private
  */
-function getPbFormulaTypeCard_() {
-  return {
-    cardsV2: [
-      {
-        cardId: 'pbFormulaTypeSelection',
-        card: {
-          header: {
-            title: 'PB（プライベートブランド）',
-            subtitle: '配合種別を選択してください'
-          },
-          sections: [
-            {
-              widgets: [
-                {
-                  buttonList: {
-                    buttons: [
-                      {
-                        text: '新規配合',
-                        onClick: {
-                          action: {
-                            function: 'onProjectTypeSelected',
-                            parameters: [
-                              { key: 'projectType', value: 'PB_NEW_FORMULA' }
-                            ]
-                          }
-                        }
-                      },
-                      {
-                        text: '既存配合',
-                        onClick: {
-                          action: {
-                            function: 'onProjectTypeSelected',
-                            parameters: [
-                              { key: 'projectType', value: 'PB_EXISTING_FORMULA' }
-                            ]
-                          }
+function getPbFormulaTypeCardsV2_() {
+  return [
+    {
+      cardId: 'pbFormulaTypeSelection',
+      card: {
+        header: {
+          title: 'PB（プライベートブランド）',
+          subtitle: '配合種別を選択してください'
+        },
+        sections: [
+          {
+            widgets: [
+              {
+                buttonList: {
+                  buttons: [
+                    {
+                      text: '新規配合',
+                      onClick: {
+                        action: {
+                          function: 'onProjectTypeSelected',
+                          parameters: [
+                            { key: 'projectType', value: 'PB_NEW_FORMULA' }
+                          ]
                         }
                       }
-                    ]
-                  }
+                    },
+                    {
+                      text: '既存配合',
+                      onClick: {
+                        action: {
+                          function: 'onProjectTypeSelected',
+                          parameters: [
+                            { key: 'projectType', value: 'PB_EXISTING_FORMULA' }
+                          ]
+                        }
+                      }
+                    }
+                  ]
                 }
-              ]
-            }
-          ]
-        }
+              }
+            ]
+          }
+        ]
       }
-    ]
-  };
+    }
+  ];
 }
 
 // ==================================================
