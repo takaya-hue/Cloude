@@ -146,6 +146,8 @@ function onCardClick(event) {
   switch (actionName) {
     case 'onProjectTypeSelected':
       return onProjectTypeSelected(event);
+    case 'onProjectInfoSubmitted':
+      return onProjectInfoSubmitted(event);
     default:
       return createChatCreateMessageResponse_(
         buildTextMessage_('不明なアクションです: ' + actionName)
@@ -254,9 +256,9 @@ function onProjectTypeSelected(event) {
     );
   }
 
-  var message = '種別「' + getProjectTypeLabel_(projectType) + '」が選択されました。次のステップに進みます。';
+  // 種別が確定したら、プロジェクト情報入力フォームを表示
   return createChatCreateMessageResponse_(
-    buildTextMessage_(message)
+    buildCardMessage_(getProjectInfoFormCardsV2_(projectType))
   );
 }
 
@@ -312,6 +314,149 @@ function getPbFormulaTypeCardsV2_() {
       }
     }
   ];
+}
+
+/**
+ * プロジェクト情報入力フォームの cardsV2 配列を返す。
+ * 商品名・規格・発売予定日の入力欄と送信ボタンを持つ。
+ *
+ * @param {string} projectType - 選択された種別コード
+ * @return {Array} CardWithId の配列
+ * @private
+ */
+function getProjectInfoFormCardsV2_(projectType) {
+  return [
+    {
+      cardId: 'projectInfoForm',
+      card: {
+        header: {
+          title: 'プロジェクト情報入力',
+          subtitle: getProjectTypeLabel_(projectType)
+        },
+        sections: [
+          {
+            header: '基本情報',
+            widgets: [
+              {
+                textInput: {
+                  label: '商品名',
+                  type: 'SINGLE_LINE',
+                  name: 'productName',
+                  hintText: '例: ○○化粧水 しっとりタイプ'
+                }
+              },
+              {
+                textInput: {
+                  label: '規格',
+                  type: 'SINGLE_LINE',
+                  name: 'specification',
+                  hintText: '例: 200mL / 30g'
+                }
+              },
+              {
+                dateTimePicker: {
+                  label: '発売予定日',
+                  type: 'DATE_ONLY',
+                  name: 'releaseDate'
+                }
+              }
+            ]
+          },
+          {
+            widgets: [
+              {
+                buttonList: {
+                  buttons: [
+                    {
+                      text: '登録する',
+                      color: {
+                        red: 0,
+                        green: 0.5,
+                        blue: 1,
+                        alpha: 1
+                      },
+                      onClick: {
+                        action: {
+                          function: 'onProjectInfoSubmitted',
+                          parameters: [
+                            { key: 'projectType', value: projectType }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ];
+}
+
+/**
+ * プロジェクト情報入力フォーム送信時のコールバック。
+ * フォームの入力値を取得し、確認メッセージを表示する。
+ *
+ * @param {Object} event - Google Chatからのイベントオブジェクト
+ * @return {Object} Workspace Add-on 形式のレスポンス
+ */
+function onProjectInfoSubmitted(event) {
+  var ceo = event.commonEventObject || event.common || {};
+  var params = ceo.parameters || {};
+  var formInputs = ceo.formInputs || {};
+
+  var projectType = params.projectType || '不明';
+  var productName = getFormValue_(formInputs, 'productName');
+  var specification = getFormValue_(formInputs, 'specification');
+  var releaseDate = getFormDateValue_(formInputs, 'releaseDate');
+
+  var summary = '✅ プロジェクトを登録しました\n\n'
+    + '📋 種別: ' + getProjectTypeLabel_(projectType) + '\n'
+    + '📦 商品名: ' + (productName || '未入力') + '\n'
+    + '📐 規格: ' + (specification || '未入力') + '\n'
+    + '📅 発売予定日: ' + (releaseDate || '未入力');
+
+  return createChatCreateMessageResponse_(
+    buildTextMessage_(summary)
+  );
+}
+
+/**
+ * formInputs からテキスト入力値を取得するヘルパー。
+ * @param {Object} formInputs - フォーム入力データ
+ * @param {string} fieldName - フィールド名
+ * @return {string} 入力値（空の場合は空文字）
+ * @private
+ */
+function getFormValue_(formInputs, fieldName) {
+  if (formInputs[fieldName] && formInputs[fieldName].stringInputs) {
+    var values = formInputs[fieldName].stringInputs.value;
+    return values && values.length > 0 ? values[0] : '';
+  }
+  return '';
+}
+
+/**
+ * formInputs から日付入力値を取得するヘルパー。
+ * @param {Object} formInputs - フォーム入力データ
+ * @param {string} fieldName - フィールド名
+ * @return {string} YYYY/MM/DD 形式の日付文字列（空の場合は空文字）
+ * @private
+ */
+function getFormDateValue_(formInputs, fieldName) {
+  if (formInputs[fieldName] && formInputs[fieldName].dateInput) {
+    var ms = formInputs[fieldName].dateInput.msSinceEpoch;
+    if (ms) {
+      var d = new Date(Number(ms));
+      var yyyy = d.getFullYear();
+      var mm = ('0' + (d.getMonth() + 1)).slice(-2);
+      var dd = ('0' + d.getDate()).slice(-2);
+      return yyyy + '/' + mm + '/' + dd;
+    }
+  }
+  return '';
 }
 
 // ==================================================
