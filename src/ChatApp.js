@@ -75,6 +75,35 @@ function buildCardMessage_(cardsV2) {
 }
 
 // ==================================================
+// イベントユーティリティ
+// ==================================================
+
+/**
+ * Workspace Add-on / Classic Chat App 両対応でメッセージテキストを取得する。
+ *
+ * - Workspace Add-on: event.chat.messagePayload.message.argumentText (or .text)
+ * - Classic Chat App:  event.message.argumentText (or .text)
+ *
+ * argumentText はBot宛メンション部分を除いた本文のみを返す。
+ *
+ * @param {Object} event - Google Chatからのイベントオブジェクト
+ * @return {string} ユーザーが入力したメッセージテキスト
+ * @private
+ */
+function getMessageText_(event) {
+  // Workspace Add-on 形式
+  if (event.chat && event.chat.messagePayload && event.chat.messagePayload.message) {
+    var msg = event.chat.messagePayload.message;
+    return (msg.argumentText || msg.text || '').trim();
+  }
+  // Classic Chat App 形式
+  if (event.message) {
+    return (event.message.argumentText || event.message.text || '').trim();
+  }
+  return '';
+}
+
+// ==================================================
 // イベントハンドラ（エントリポイント）
 // ==================================================
 
@@ -86,9 +115,7 @@ function buildCardMessage_(cardsV2) {
  * @return {Object} Workspace Add-on 形式のレスポンス
  */
 function onMessage(event) {
-  var userMessage = (event.message && event.message.text)
-    ? event.message.text.trim()
-    : '';
+  var userMessage = getMessageText_(event);
 
   var isTriggered = TRIGGER_KEYWORDS.some(function(keyword) {
     return userMessage.indexOf(keyword) !== -1;
