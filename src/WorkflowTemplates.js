@@ -6,7 +6,7 @@
  *
  * シート構成:
  *   シート名 = プロジェクト種別名（例: "新商品", "リニューアル・軽微な変更"）
- *   カラム: 親タスク番号, 親タスク名, 子タスク番号, 子タスク名, ロール, 担当者（正）, 担当者（副）, 開始時の挙動, 完了時の挙動
+ *   カラム: 親タスク番号, 親タスク名, 子タスク番号, 子タスク名, ロール, 担当者（正）, 担当者（副）, 依存タスク, 開始時の挙動, 完了時の挙動
  */
 
 /** ワークフロー定義スプレッドシートの名前 */
@@ -56,34 +56,34 @@ function createWorkflowSheet() {
   PropertiesService.getScriptProperties().setProperty('WORKFLOW_SPREADSHEET_ID', ssId);
 
   // ヘッダー行の定義
-  var headers = ['親タスク番号', '親タスク名', '子タスク番号', '子タスク名', 'ロール', '担当者（正）', '担当者（副）', '開始時の挙動', '完了時の挙動'];
+  var headers = ['親タスク番号', '親タスク名', '子タスク番号', '子タスク名', 'ロール', '担当者（正）', '担当者（副）', '依存タスク', '開始時の挙動', '完了時の挙動'];
 
   // 新商品ワークフローのデータ
   var newProductData = [
     headers,
-    [1, '基本情報作成', '',  '基本情報入力',   'コンセプトWG', '川村', '', '', ''],
-    [2, '承認1',       '',  '',               '代表取締役',   '貴哉', '', '', '3-1,3-2,3-3,3-4,3-5開始の通知を出す。'],
-    [3, '試算確定',     1,   '配合作成',       '原価・配合WG', '石原', '', '', ''],
-    [3, '試算確定',     2,   '原価試算',       '原価・配合WG', '石原', '', '', ''],
-    [3, '試算確定',     3,   '売価設定',       '営業',         '',     '', '', ''],
-    [3, '試算確定',     4,   'デザイン案作成', 'デザインWG',   '',     '', '', ''],
-    [3, '試算確定',     5,   '品質基準策定',   '品質管理',     '',     '', '', ''],
-    [4, '承認2',       '',  '',               '代表取締役',   '貴哉', '', '', '5開始の通知を出す。'],
-    [5, '製造準備',     1,   '製造指示書作成', '原価・配合WG', '石原', '', '', ''],
-    [5, '製造準備',     2,   'パッケージ入稿', 'デザインWG',   '',     '', '', ''],
-    [5, '製造準備',     3,   '販促物作成',     '営業',         '',     '', '', ''],
-    [6, '最終承認',     '',  '',               '代表取締役',   '貴哉', '', '', '発売準備完了の通知を出す。']
+    [1, '基本情報作成', '',  '基本情報入力',   'コンセプトWG',   '', '', '', '', ''],
+    [2, '承認1',       '',  '',               '代表取締役',     '', '', '1', '', ''],
+    [3, '試算確定',     1,   '配合作成',       '原価・配合WG',   '', '', '2', '', ''],
+    [3, '試算確定',     2,   '原価試算',       '原価・配合WG',   '', '', '2', '', ''],
+    [3, '試算確定',     3,   '売価設定',       '営業',           '', '', '2', '', ''],
+    [3, '試算確定',     4,   'デザイン案作成', 'コピー・外装WG', '', '', '2', '', ''],
+    [3, '試算確定',     5,   '品質基準策定',   '品質管理',       '', '', '2', '', ''],
+    [4, '承認2',       '',  '',               '代表取締役',     '', '', '3-1,3-2,3-3,3-4,3-5', '', ''],
+    [5, '製造準備',     1,   '製造指示書作成', '原価・配合WG',   '', '', '4', '', ''],
+    [5, '製造準備',     2,   'パッケージ入稿', 'コピー・外装WG', '', '', '4', '', ''],
+    [5, '製造準備',     3,   '販促物作成',     '営業',           '', '', '4', '', ''],
+    [6, '最終承認',     '',  '',               '代表取締役',     '', '', '5-1,5-2,5-3', '', '']
   ];
 
   // リニューアルワークフローのデータ
   var renewalData = [
     headers,
-    [1, '変更内容整理', 1,   '変更箇所の特定', 'コンセプトWG', '川村', '', '', ''],
-    [1, '変更内容整理', 2,   '影響範囲の確認', 'コンセプトWG', '川村', '', '', ''],
-    [2, '承認',         '',  '',               '代表取締役',   '貴哉', '', '', '3-1,3-2開始の通知を出す。'],
-    [3, '変更実施',     1,   '配合・原価修正', '原価・配合WG', '石原', '', '', ''],
-    [3, '変更実施',     2,   'デザイン修正',   'デザインWG',   '',     '', '', ''],
-    [4, '最終確認',     '',  '',               '代表取締役',   '貴哉', '', '', '変更完了の通知を出す。']
+    [1, '変更内容整理', 1,   '変更箇所の特定', 'コンセプトWG',   '', '', '', '', ''],
+    [1, '変更内容整理', 2,   '影響範囲の確認', 'コンセプトWG',   '', '', '', '', ''],
+    [2, '承認',         '',  '',               '代表取締役',     '', '', '1-1,1-2', '', ''],
+    [3, '変更実施',     1,   '配合・原価修正', '原価・配合WG',   '', '', '2', '', ''],
+    [3, '変更実施',     2,   'デザイン修正',   'コピー・外装WG', '', '', '2', '', ''],
+    [4, '最終確認',     '',  '',               '代表取締役',     '', '', '3-1,3-2', '', '']
   ];
 
   // Sheets API: デフォルトシートをリネーム + 新商品データを書き込み
@@ -176,7 +176,7 @@ function createWorkflowSheet() {
   var roleInitialData = [
     { role: 'コンセプトWG', name: '川村', type: '正' },
     { role: '原価・配合WG', name: '石原', type: '正' },
-    { role: 'デザインWG',   name: '',     type: '正' },
+    { role: 'コピー・外装WG', name: '',     type: '正' },
     { role: '営業',         name: '',     type: '正' },
     { role: '代表取締役',   name: '貴哉', type: '正' }
   ];
@@ -244,6 +244,50 @@ function createWorkflowSheet() {
     ]
   };
 
+  // ワークフローシートの担当者（正）・担当者（副）列にデータバリデーションを追加
+  // 担当者・ロール定義シートの担当者名（B列）を選択肢とする
+  var workflowSheetIds = [0, renewalSheetId]; // 新商品(sheetId=0), リニューアル
+  workflowSheetIds.forEach(function(wsId) {
+    // 担当者（正）列 = F列 = index 5
+    thirdBatch.requests.push({
+      setDataValidation: {
+        range: {
+          sheetId: wsId,
+          startRowIndex: 1,
+          startColumnIndex: 5,
+          endColumnIndex: 6
+        },
+        rule: {
+          condition: {
+            type: 'ONE_OF_RANGE',
+            values: [{ userEnteredValue: '=担当者・ロール定義!$B$2:$B$100' }]
+          },
+          showCustomUi: true,
+          strict: false
+        }
+      }
+    });
+    // 担当者（副）列 = G列 = index 6
+    thirdBatch.requests.push({
+      setDataValidation: {
+        range: {
+          sheetId: wsId,
+          startRowIndex: 1,
+          startColumnIndex: 6,
+          endColumnIndex: 7
+        },
+        rule: {
+          condition: {
+            type: 'ONE_OF_RANGE',
+            values: [{ userEnteredValue: '=担当者・ロール定義!$B$2:$B$100' }]
+          },
+          showCustomUi: true,
+          strict: false
+        }
+      }
+    });
+  });
+
   UrlFetchApp.fetch('https://sheets.googleapis.com/v4/spreadsheets/' + ssId + ':batchUpdate', {
     method: 'post',
     headers: { 'Authorization': 'Bearer ' + token },
@@ -294,12 +338,20 @@ function syncDirectory() {
   var metaData = JSON.parse(metaResponse.getContentText());
   var dirSheetId = null;
   var roleSheetId = null;
+  var newProductSheetId = null;
+  var renewalSheetId = null;
   metaData.sheets.forEach(function(sheet) {
     if (sheet.properties.title === 'ディレクトリ') {
       dirSheetId = sheet.properties.sheetId;
     }
     if (sheet.properties.title === '担当者・ロール定義') {
       roleSheetId = sheet.properties.sheetId;
+    }
+    if (sheet.properties.title === '新商品') {
+      newProductSheetId = sheet.properties.sheetId;
+    }
+    if (sheet.properties.title === 'リニューアル・軽微な変更') {
+      renewalSheetId = sheet.properties.sheetId;
     }
   });
 
@@ -324,7 +376,7 @@ function syncDirectory() {
     }
   ];
 
-  // データバリデーションも更新
+  // データバリデーションも更新（担当者・ロール定義シートのB列）
   if (roleSheetId !== null) {
     requests.push({
       setDataValidation: {
@@ -345,6 +397,52 @@ function syncDirectory() {
       }
     });
   }
+
+  // ワークフローシートの担当者（正）・担当者（副）列のデータバリデーションも更新
+  var workflowSheetIds = [];
+  if (newProductSheetId !== null) workflowSheetIds.push(newProductSheetId);
+  if (renewalSheetId !== null) workflowSheetIds.push(renewalSheetId);
+
+  workflowSheetIds.forEach(function(wsId) {
+    // 担当者（正）列 = F列 = index 5
+    requests.push({
+      setDataValidation: {
+        range: {
+          sheetId: wsId,
+          startRowIndex: 1,
+          startColumnIndex: 5,
+          endColumnIndex: 6
+        },
+        rule: {
+          condition: {
+            type: 'ONE_OF_RANGE',
+            values: [{ userEnteredValue: '=担当者・ロール定義!$B$2:$B$100' }]
+          },
+          showCustomUi: true,
+          strict: false
+        }
+      }
+    });
+    // 担当者（副）列 = G列 = index 6
+    requests.push({
+      setDataValidation: {
+        range: {
+          sheetId: wsId,
+          startRowIndex: 1,
+          startColumnIndex: 6,
+          endColumnIndex: 7
+        },
+        rule: {
+          condition: {
+            type: 'ONE_OF_RANGE',
+            values: [{ userEnteredValue: '=担当者・ロール定義!$B$2:$B$100' }]
+          },
+          showCustomUi: true,
+          strict: false
+        }
+      }
+    });
+  });
 
   UrlFetchApp.fetch('https://sheets.googleapis.com/v4/spreadsheets/' + ssId + ':batchUpdate', {
     method: 'post',
@@ -439,7 +537,8 @@ function readWorkflowFromSheet_(sheetName) {
  * スプレッドシートの行データを親子構造のワークフロー定義に変換する。
  *
  * カラム: [0]親タスク番号, [1]親タスク名, [2]子タスク番号, [3]子タスク名,
- *         [4]ロール, [5]担当者（正）, [6]担当者（副）, [7]開始時の挙動, [8]完了時の挙動
+ *         [4]ロール, [5]担当者（正）, [6]担当者（副）, [7]依存タスク,
+ *         [8]開始時の挙動, [9]完了時の挙動
  *
  * @param {Array<Array>} rows - データ行の2次元配列
  * @return {Array} 親子構造のワークフロー定義配列
@@ -457,8 +556,14 @@ function parseWorkflowRows_(rows) {
     var role = row[4] || '';
     var primary = row[5] || '';
     var secondary = row[6] || '';
-    var onStart = row[7] || '';
-    var onComplete = row[8] || '';
+    var dependsOn = row[7] || '';
+    var onStart = row[8] || '';
+    var onComplete = row[9] || '';
+
+    // 依存タスクをカンマ区切りで配列にパース
+    var dependencies = dependsOn
+      ? String(dependsOn).split(',').map(function(s) { return s.trim(); }).filter(Boolean)
+      : [];
 
     if (!parentId) return;
 
@@ -470,6 +575,7 @@ function parseWorkflowRows_(rows) {
         role: '',
         primary: '',
         secondary: '',
+        dependencies: [],
         onStart: '',
         onComplete: '',
         children: []
@@ -490,6 +596,7 @@ function parseWorkflowRows_(rows) {
         role: role,
         primary: primary,
         secondary: secondary,
+        dependencies: dependencies,
         onStart: onStart,
         onComplete: onComplete
       });
@@ -498,6 +605,7 @@ function parseWorkflowRows_(rows) {
       parent.role = role;
       parent.primary = primary;
       parent.secondary = secondary;
+      parent.dependencies = dependencies;
       parent.onStart = onStart;
       parent.onComplete = onComplete;
     }
@@ -603,6 +711,7 @@ function flattenWorkflow(workflow) {
         role: parent.role,
         primary: parent.primary,
         secondary: parent.secondary,
+        dependencies: parent.dependencies || [],
         onStart: parent.onStart,
         onComplete: parent.onComplete
       });
@@ -614,6 +723,7 @@ function flattenWorkflow(workflow) {
           role: child.role || parent.role,
           primary: child.primary || parent.primary,
           secondary: child.secondary || parent.secondary,
+          dependencies: child.dependencies || [],
           onStart: child.onStart || '',
           onComplete: child.onComplete || ''
         });

@@ -135,7 +135,7 @@ function getMemberRegistrationFormCardsV2_() {
       items: [
         { text: 'コンセプトWG', value: 'コンセプトWG', selected: false },
         { text: '原価・配合WG', value: '原価・配合WG', selected: false },
-        { text: 'デザインWG', value: 'デザインWG', selected: false },
+        { text: 'コピー・外装WG', value: 'コピー・外装WG', selected: false },
         { text: '営業', value: '営業', selected: false },
         { text: '代表取締役', value: '代表取締役', selected: false },
         { text: 'その他', value: 'その他', selected: false }
