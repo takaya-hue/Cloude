@@ -136,8 +136,13 @@ function getMemberRegistrationFormCardsV2_() {
         { text: 'コンセプトWG', value: 'コンセプトWG', selected: false },
         { text: '原価・配合WG', value: '原価・配合WG', selected: false },
         { text: 'コピー・外装WG', value: 'コピー・外装WG', selected: false },
-        { text: '営業', value: '営業', selected: false },
         { text: '代表取締役', value: '代表取締役', selected: false },
+        { text: '製造・物流部', value: '製造・物流部', selected: false },
+        { text: '統括事務部', value: '統括事務部', selected: false },
+        { text: '広報室', value: '広報室', selected: false },
+        { text: '営業部長', value: '営業部長', selected: false },
+        { text: '製造・物流部長', value: '製造・物流部長', selected: false },
+        { text: '研究開発部長', value: '研究開発部長', selected: false },
         { text: 'その他', value: 'その他', selected: false }
       ]
     }
